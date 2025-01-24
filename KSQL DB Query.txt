@@ -1,0 +1,48 @@
+create stream dibimbing_pokemon_stream (
+    transaction_id VARCHAR,
+    customer_name VARCHAR,
+    store_name VARCHAR,
+	location VARCHAR,
+    product_type VARCHAR,
+    product_model VARCHAR,
+    payment VARCHAR,
+    merchant VARCHAR,
+    quantity INT,
+    unit_price INT,
+    total_price INT,
+    transaction_date VARCHAR
+) with (
+    KAFKA_TOPIC = 'dibimbing-pokemon',
+    KEY_FORMAT='KAFKA', 
+    PARTITIONS=3,
+    VALUE_FORMAT = 'JSON'
+);
+
+select * from dibimbing_pokemon_stream emit changes;
+
+select * from dibimbing_pokemon_stream;
+
+create table dibimbing_pokemon_ksql as
+select transaction_id,
+latest_by_offset(customer_name) as customer_name,
+latest_by_offset(store_name) as store_name,
+latest_by_offset(location) as location,
+latest_by_offset(product_type) as product_type,
+latest_by_offset(product_model) as product_model,
+latest_by_offset(payment) as payment,
+latest_by_offset(merchant) as merchant,
+latest_by_offset(quantity) as quantity,
+latest_by_offset(unit_price) as unit_price,
+latest_by_offset(total_price) as total_price,
+latest_by_offset(transaction_date) as transaction_date
+from dibimbing_pokemon_stream
+group by transaction_id;
+
+select * from dibimbing_pokemon_ksql;
+
+crate table payment_ksql as
+select payment
+, sum(total_price) as total_price
+from dibimbing_pokemon_ksql
+group by payment
+emit changes;
